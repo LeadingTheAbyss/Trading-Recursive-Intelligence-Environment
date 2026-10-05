@@ -6,13 +6,16 @@ def daily_profits(prices, positions, cost=0.001):
 
     Decide at the close of day t -> positions[t]. The gain/loss from that decision
     arrives on day t+1. So profit on day t+1 uses positions[t], never positions[t+1].
-    Every change in position costs `cost` (0.001 = 0.1% of the price).
+    `cost` is either one number (0.001 = 0.1% for any trade) or a pair (buy_cost, sell_cost),
+    since real buying and selling are charged differently (see costs.py).
     """
+    buy_cost, sell_cost = cost if isinstance(cost, tuple) else (cost, cost)
     price_change = prices[1:] / prices[:-1] - 1          # change from day t to t+1
     held = positions[:-1]                                # what we held going into each day
     previous = np.concatenate([[0], positions[:-2]])     # what we held before that (start with nothing)
-    trades = np.abs(held - previous)                     # 1 whenever we bought or sold
-    return held * price_change - trades * cost
+    bought = np.maximum(held - previous, 0)              # 1 when we went from 0 to 1
+    sold = np.maximum(previous - held, 0)                # 1 when we went from 1 to 0
+    return held * price_change - bought * buy_cost - sold * sell_cost
 
 
 def score(profits, days_per_year=252):

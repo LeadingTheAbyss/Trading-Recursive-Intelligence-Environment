@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# downloaded by data_nse.py, can be re-created
+data/
