@@ -34,3 +34,31 @@ See [Plan.md](Plan.md) for the full project idea.
    What we learned:
    - **Buy and hold is the yardstick to beat,** not the model we built. A strategy only counts if it beats holding on data it never saw, after costs.
    - **RSI here means recursive self-improvement,** not the stock indicator. It will be added after a plain search baseline (random search vs breeding over the strategy settings), judged on unseen periods.
+
+5. We built the RSI search ([rsi_search.py](rsi_search.py), raw numbers in `results_rsi.csv`) and compared three ways of searching for a good strategy, each given 200 tries: random search, plain evolution (keep mutating the best so far), and RSI (a search that keeps checking which of its own tricks work and shifts effort toward them). The best strategy found on the first half of the data was then tested on data it never saw. Averages over 20 runs:
+
+   **First attempt (5 knobs, no rules to slow down trading)**
+
+   | | Test return | Test Sharpe |
+   |---|---|---|
+   | Random | -5.2% | -1.08 |
+   | Evolution | -7.4% | -0.85 |
+   | RSI | -7.4% | -0.86 |
+   | Buy and hold | +3.2% | 0.18 |
+
+   Why it lost: the strategies made about 100 trades per stock. Before costs they earned roughly 0 to 5%, and costs (about 0.24% per round trip) took about 10%. So costs were the main problem, and the signal itself was weak.
+
+   **Second attempt (added a minimum holding time and a cooldown before re-buying)**
+
+   | | Test return | Test Sharpe | Beat buy and hold |
+   |---|---|---|---|
+   | Random | -0.4% | -0.04 | 2 of 20 |
+   | Evolution | -1.7% | -0.19 | 1 of 20 |
+   | RSI | -0.6% | -0.06 | 2 of 20 |
+   | Buy and hold | +3.2% | 0.18 | n/a |
+
+   What we learned:
+   - The cooldown fixed the cost problem: losses went from about -7% to about 0%.
+   - Still no strategy beats buy and hold on unseen data. They look great on the data they were tuned on (Sharpe about 1.7) and flat on new data, which means they are fitting the past.
+   - RSI is not clearly better than random search yet. The gaps are small, from one split and 20 runs.
+   - Next: test over several rolling time periods (walk-forward) so we can tell a real edge from luck.
