@@ -21,8 +21,9 @@ from costs import trade_costs
 CAPITAL = 100_000
 BUDGET, BATCH, N_SEEDS = 200, 20, 20
 DIM = 7
+N_STOCKS = 200
 COST = trade_costs(CAPITAL, "zerodha")
-close, volume = load_nse()
+close, volume = load_nse(top=N_STOCKS)
 P, V = close.to_numpy(), volume.to_numpy()
 T = len(close)
 TRAIN_END, VAL_END = int(T * 0.5), int(T * 0.75)   # 50% train / 25% validation / 25% test
@@ -65,6 +66,16 @@ def apply_rules(signal, min_hold, cooldown):
     return pos
 
 
+def portfolio_profits(pos, cost=COST):
+    """Same maths as backtest.daily_profits, for all stocks at once; returns the equal-weight daily profit."""
+    buy_cost, sell_cost = cost
+    price_change = P[1:] / P[:-1] - 1
+    held = pos[:-1]
+    previous = np.vstack([np.zeros((1, pos.shape[1]), dtype=int), pos[:-2]])
+    bought, sold = np.maximum(held - previous, 0), np.maximum(previous - held, 0)
+    return (held * price_change - bought * buy_cost - sold * sell_cost).mean(axis=1)
+
+
 def evaluate(x):
     """Equal-weight portfolio over all stocks. Returns Sharpe on (train, val, test) and test total return."""
     k = decode(x)
@@ -74,7 +85,7 @@ def evaluate(x):
     hold = (mom > k["mom_thresh"]) & (vol < k["vol_thresh"]) & (volume > hv)
     hold.iloc[: max(100, k["mom_days"] + 1, k["vol_days"] + 1) - 1] = False
     pos = apply_rules(hold.to_numpy(), k["min_hold"], k["cooldown"])
-    profits = np.mean([daily_profits(P[:, i], pos[:, i], COST) for i in range(P.shape[1])], axis=0)
+    profits = portfolio_profits(pos)
     # profits[t] is the gain on day t+1; split by time (positions only used past data, so this is clean)
     tr, va, te = profits[:TRAIN_END], profits[TRAIN_END:VAL_END], profits[VAL_END:]
     return score(tr)["sharpe"], score(va)["sharpe"], score(te)["sharpe"], score(te)["total_return"]

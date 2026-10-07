@@ -1,5 +1,15 @@
+# Python
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-# downloaded by data_nse.py, can be re-created
+
+# downloaded by data_nse.py, can be re-created (py data_nse.py)
 data/
+data_*/
+
+# local backups and scratch output
+results_*_48.csv
+results_*_v1.csv
+best_dream_strategy.json
+*.out
+.vscode/
